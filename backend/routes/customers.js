@@ -2,7 +2,12 @@ const express = require('express');
 const Customer = require('../models/Customer');
 const Transaction = require('../models/Transaction');
 const auth = require('../middleware/auth');
-const { computeTotals, calculateAccruedInterest } = require('../utils/interest');
+const {
+  computeTotals,
+  calculateAccruedInterest,
+  getRemainingCapital,
+  getTotalInterestPaid
+} = require('../utils/interest');
 
 const router = express.Router();
 router.use(auth);
@@ -91,9 +96,14 @@ router.get('/report', async (req, res) => {
     else from.setMonth(now.getMonth() - 1);
 
     const customers = await Customer.find({ user: req.userId });
+
+    // Include a transaction if it was CREATED in this period, OR if any
+    // capital/interest payment was made against it during this period.
+    // Without the second condition, a deposit made today on an old
+    // transaction would never show up in the report.
     const transactionDocs = await Transaction.find({
       user: req.userId,
-      date: { $gte: from, $lte: now }
+      $or: [{ date: { $gte: from, $lte: now } }, { 'payments.date': { $gte: from, $lte: now } }]
     }).sort({ date: -1 });
 
     const byCustomer = {};
@@ -135,8 +145,24 @@ router.get('/report', async (req, res) => {
     const transactions = transactionDocs.map((t) => {
       const customerDoc = customers.find((c) => c._id.toString() === t.customer.toString());
       const obj = t.toObject();
+
+      const remainingCapital = getRemainingCapital(t);
+      const capitalPaid = Number(t.amount) - remainingCapital;
+      const interestPaid = getTotalInterestPaid(t);
+
       obj.interest = calculateAccruedInterest(t, now);
       obj.customerName = customerDoc ? customerDoc.name : 'Unknown';
+      obj.remainingCapital = remainingCapital;
+      obj.capitalPaid = capitalPaid;
+      obj.interestPaid = interestPaid;
+
+      // Payments (deposits) made specifically within this report's date window,
+      // so the PDF can show what actually happened during the period.
+      obj.paymentsInPeriod = (t.payments || []).filter((p) => {
+        const d = new Date(p.date);
+        return d >= from && d <= now;
+      });
+
       return obj;
     });
 

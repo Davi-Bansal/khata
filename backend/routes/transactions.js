@@ -2,6 +2,11 @@ const express = require('express');
 const Transaction = require('../models/Transaction');
 const Customer = require('../models/Customer');
 const auth = require('../middleware/auth');
+const {
+  calculateAccruedInterest,
+  getRemainingCapital,
+  getTotalInterestPaid
+} = require('../utils/interest');
 
 const router = express.Router();
 router.use(auth);
@@ -55,6 +60,28 @@ router.get('/customer/:customerId', async (req, res) => {
   }
 });
 
+// @route GET /api/transactions/:id -> single transaction with computed fields
+// (remaining balance, interest due, total interest paid) for the Entry Details screen
+router.get('/:id', async (req, res) => {
+  try {
+    const transaction = await Transaction.findOne({ _id: req.params.id, user: req.userId }).populate(
+      'customer',
+      'name'
+    );
+    if (!transaction) return res.status(404).json({ message: 'Transaction not found' });
+
+    res.json({
+      transaction,
+      remainingCapital: getRemainingCapital(transaction),
+      interestDue: calculateAccruedInterest(transaction),
+      totalInterestPaid: getTotalInterestPaid(transaction)
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Server error fetching transaction' });
+  }
+});
+
 // @route PUT /api/transactions/:id -> update a transaction
 router.put('/:id', async (req, res) => {
   try {
@@ -77,6 +104,73 @@ router.put('/:id', async (req, res) => {
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: 'Server error updating transaction' });
+  }
+});
+
+// @route POST /api/transactions/:id/payments -> record a capital or interest deposit
+router.post('/:id/payments', async (req, res) => {
+  try {
+    const { type, amount, date, note } = req.body;
+
+    if (!['capital', 'interest'].includes(type)) {
+      return res.status(400).json({ message: "type must be 'capital' or 'interest'" });
+    }
+    if (!amount || Number(amount) <= 0) {
+      return res.status(400).json({ message: 'A valid amount is required' });
+    }
+
+    const transaction = await Transaction.findOne({ _id: req.params.id, user: req.userId });
+    if (!transaction) return res.status(404).json({ message: 'Transaction not found' });
+
+    if (type === 'capital') {
+      const remaining = getRemainingCapital(transaction);
+      if (Number(amount) > remaining) {
+        return res
+          .status(400)
+          .json({ message: `Amount exceeds remaining balance of ₹${remaining.toFixed(0)}` });
+      }
+    }
+
+    transaction.payments.push({
+      type,
+      amount: Number(amount),
+      date: date ? new Date(date) : new Date(),
+      note: note || ''
+    });
+    await transaction.save();
+
+    res.status(201).json({
+      transaction,
+      remainingCapital: getRemainingCapital(transaction),
+      interestDue: calculateAccruedInterest(transaction),
+      totalInterestPaid: getTotalInterestPaid(transaction)
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Server error recording payment' });
+  }
+});
+
+// @route DELETE /api/transactions/:id/payments/:paymentId -> remove a deposit entry
+router.delete('/:id/payments/:paymentId', async (req, res) => {
+  try {
+    const transaction = await Transaction.findOne({ _id: req.params.id, user: req.userId });
+    if (!transaction) return res.status(404).json({ message: 'Transaction not found' });
+
+    transaction.payments = transaction.payments.filter(
+      (p) => p._id.toString() !== req.params.paymentId
+    );
+    await transaction.save();
+
+    res.json({
+      transaction,
+      remainingCapital: getRemainingCapital(transaction),
+      interestDue: calculateAccruedInterest(transaction),
+      totalInterestPaid: getTotalInterestPaid(transaction)
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Server error deleting payment' });
   }
 });
 

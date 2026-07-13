@@ -910,4 +910,49 @@ img, svg {
   .app-shell {
     box-shadow: 0 0 24px rgba(0, 0, 0, 0.12);
   }
+} 
+/* --- Add these to the bottom of your existing App.css --- */
+
+.section-heading {
+  font-weight: 600;
+  color: #1a3fae;
+  padding: 14px 16px 6px;
+}
+
+.detail-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 12px 16px;
+  border-bottom: 1px solid #eee;
+}
+
+.deposit-row-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.deposit-row {
+  background: #fdecea;
+  margin: 6px 16px;
+  padding: 12px;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.empty-state-small {
+  padding: 8px 16px;
+  color: #999;
+  font-size: 13px;
+}
+
+.btn-delete-red {
+  width: calc(100% - 32px);
+  margin: 16px;
+  padding: 14px;
+  background: #e53935;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
 }

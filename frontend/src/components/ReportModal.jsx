@@ -71,15 +71,17 @@ function buildPdf(report) {
   let y = cardY + cardHeight + 10;
 
   // Customer-wise breakdown table
+  // Note: c.gave / c.got here are remaining principal + interest due (after
+  // deposits already made), not the original transaction amounts.
   doc.setFontSize(11);
   doc.setFont(undefined, 'bold');
-  doc.text('Customer-wise Summary', margin, y);
+  doc.text('Customer-wise Summary (after deposits)', margin, y);
   doc.setFont(undefined, 'normal');
   y += 4;
 
   doc.autoTable({
     startY: y,
-    head: [['Customer', 'You Gave (Rs.)', 'You Got (Rs.)', 'Interest (Rs.)', 'Balance (Rs.)']],
+    head: [['Customer', 'You Gave (Rs.)', 'You Got (Rs.)', 'Interest Due (Rs.)', 'Balance (Rs.)']],
     body: report.customers.map((c) => [
       c.name,
       c.gave.toFixed(0),
@@ -105,14 +107,16 @@ function buildPdf(report) {
 
     doc.autoTable({
       startY: y,
-      head: [['Date', 'Customer', 'Type', 'Amount (Rs.)', 'Rate', 'Interest Type', 'Interest (Rs.)']],
+      head: [
+        ['Date', 'Customer', 'Type', 'Amount (Rs.)', 'Paid (Rs.)', 'Balance (Rs.)', 'Interest Due (Rs.)']
+      ],
       body: report.transactions.map((t) => [
         formatDate(t.date),
         t.customerName,
         t.type === 'gave' ? 'You Gave' : 'You Got',
         t.amount.toFixed(0),
-        t.rate ? `${t.rate}% ${t.rateType}` : '-',
-        t.rate ? (t.interestType === 'compound' ? 'Compound' : 'Simple') : '-',
+        (t.capitalPaid || 0).toFixed(0),
+        (t.remainingCapital !== undefined ? t.remainingCapital : t.amount).toFixed(0),
         t.interest ? t.interest.toFixed(0) : '0'
       ]),
       theme: 'striped',
@@ -120,6 +124,46 @@ function buildPdf(report) {
       bodyStyles: { fontSize: 8 },
       margin: { left: margin, right: margin }
     });
+
+    y = doc.lastAutoTable.finalY + 10;
+
+    // Deposits made within this period, across all transactions.
+    const allDeposits = [];
+    report.transactions.forEach((t) => {
+      (t.paymentsInPeriod || []).forEach((p) => {
+        allDeposits.push({
+          date: p.date,
+          customerName: t.customerName,
+          type: p.type === 'capital' ? 'Capital' : 'Interest',
+          amount: p.amount,
+          note: p.note || ''
+        });
+      });
+    });
+
+    if (allDeposits.length > 0) {
+      doc.setFontSize(11);
+      doc.setFont(undefined, 'bold');
+      doc.text('Deposits Received/Paid in this period', margin, y);
+      doc.setFont(undefined, 'normal');
+      y += 4;
+
+      doc.autoTable({
+        startY: y,
+        head: [['Date', 'Customer', 'Deposit Type', 'Amount (Rs.)', 'Note']],
+        body: allDeposits.map((d) => [
+          formatDate(d.date),
+          d.customerName,
+          d.type,
+          d.amount.toFixed(0),
+          d.note
+        ]),
+        theme: 'striped',
+        headStyles: { fillColor: [30, 142, 62], fontSize: 9 },
+        bodyStyles: { fontSize: 8 },
+        margin: { left: margin, right: margin }
+      });
+    }
   } else {
     doc.setFontSize(9);
     doc.setTextColor(120);

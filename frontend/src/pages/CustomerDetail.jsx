@@ -193,7 +193,12 @@ export default function CustomerDetail() {
         {transactions.map((t) => {
           const interest = t.interest || 0;
           return (
-            <div key={t._id} className="transaction-row">
+            <div
+              key={t._id}
+              className="transaction-row"
+              style={{ cursor: 'pointer' }}
+              onClick={() => navigate(`/transaction/${t._id}`)}
+            >
               <div className="transaction-main">
                 <div className={t.type === 'gave' ? 'amount-red' : 'amount-green'}>
                   ₹{t.amount.toFixed(0)}

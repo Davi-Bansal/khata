@@ -5,6 +5,7 @@ import Login from './pages/Login';
 import Signup from './pages/Signup';
 import Dashboard from './pages/Dashboard';
 import CustomerDetail from './pages/CustomerDetail';
+import TransactionDetail from './pages/TransactionDetail';
 
 export default function App() {
   return (
@@ -26,6 +27,14 @@ export default function App() {
             element={
               <ProtectedRoute>
                 <CustomerDetail />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/transaction/:id"
+            element={
+              <ProtectedRoute>
+                <TransactionDetail />
               </ProtectedRoute>
             }
           />
