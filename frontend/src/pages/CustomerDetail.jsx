@@ -24,6 +24,7 @@ function formatPhoneForWhatsApp(mobile) {
 
 // Builds the WhatsApp reminder message, calculating everything fresh from live data —
 // principal, rate, interest type, elapsed interest, and totals — no manual entry needed.
+// Uses REMAINING capital (not the original amount) so partial payments are reflected correctly.
 function buildWhatsAppMessage(customer, transactions, totals) {
   const loanLines = transactions
     .filter((t) => t.type === 'gave' && t.rate > 0)
@@ -31,9 +32,11 @@ function buildWhatsAppMessage(customer, transactions, totals) {
       const interestLabel = t.interestType === 'compound' ? 'compound' : 'simple';
       const till = t.returnDate ? ` till ${formatDate(t.returnDate)}` : '';
       const interest = t.interest || 0;
+      const remaining = t.remainingCapital ?? t.amount;
+      const paidNote = t.capitalPaid > 0 ? ` (₹${t.capitalPaid.toFixed(0)} already paid)` : '';
       return (
         `• You took ₹${t.amount.toFixed(0)} from "${SHOP_NAME}" at ${t.rate}% ${t.rateType} ${interestLabel} interest, ` +
-        `given on ${formatDate(t.date)}${till}. Interest so far: ₹${interest.toFixed(0)}.`
+        `given on ${formatDate(t.date)}${till}. Remaining: ₹${remaining.toFixed(0)}${paidNote}. Interest due: ₹${interest.toFixed(0)}.`
       );
     });
 
@@ -192,6 +195,8 @@ export default function CustomerDetail() {
         )}
         {transactions.map((t) => {
           const interest = t.interest || 0;
+          const remainingCapital = t.remainingCapital ?? t.amount;
+          const isPartiallyPaid = t.capitalPaid > 0 || t.interestPaid > 0;
           return (
             <div
               key={t._id}
@@ -209,11 +214,16 @@ export default function CustomerDetail() {
                 {t.rate > 0 && (
                   <span className="badge">
                     {t.rate}% {t.rateType} ({t.interestType === 'compound' ? 'Compound' : 'Simple'})
-                    {interest > 0 && ` • Interest ≈ ₹${interest.toFixed(0)}`}
+                    {interest > 0 && ` • Interest due ≈ ₹${interest.toFixed(0)}`}
                   </span>
                 )}
                 {t.returnDate && (
                   <span className="badge-outline">Return: {formatDate(t.returnDate)}</span>
+                )}
+                {isPartiallyPaid && (
+                  <span className="badge-outline">
+                    {remainingCapital <= 0 ? 'Fully settled' : `Remaining: ₹${remainingCapital.toFixed(0)}`}
+                  </span>
                 )}
                 {t.note && <div className="transaction-note">{t.note}</div>}
               </div>

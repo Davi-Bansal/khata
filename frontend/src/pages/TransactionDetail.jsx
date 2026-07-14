@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import api from '../api/axios';
 import AddPaymentModal from '../components/AddPaymentModal';
+import EditTransactionModal from '../components/EditTransactionModal';
 
 function formatDate(d) {
   if (!d) return '';
@@ -18,6 +19,7 @@ export default function TransactionDetail() {
   const [totalInterestPaid, setTotalInterestPaid] = useState(0);
   const [loading, setLoading] = useState(true);
   const [depositType, setDepositType] = useState(null); // 'capital' | 'interest' | null
+  const [showEditModal, setShowEditModal] = useState(false);
 
   const load = async () => {
     setLoading(true);
@@ -70,6 +72,14 @@ export default function TransactionDetail() {
     }
   };
 
+  // After a successful edit, the amount/rate/dates may have changed, so reload
+  // everything fresh rather than trying to patch state manually — this keeps
+  // remainingCapital/interestDue/totalInterestPaid guaranteed correct.
+  const handleTransactionUpdated = () => {
+    setShowEditModal(false);
+    load();
+  };
+
   if (loading) return <div className="empty-state">Loading...</div>;
   if (!transaction) return <div className="empty-state">Transaction not found</div>;
 
@@ -86,6 +96,11 @@ export default function TransactionDetail() {
             &#8592;
           </button>
           <span className="topbar-title">Entry Details</span>
+        </div>
+        <div className="topbar-right">
+          <button className="icon-btn" onClick={() => setShowEditModal(true)} title="Edit transaction">
+            ✏️
+          </button>
         </div>
       </div>
 
@@ -126,12 +141,15 @@ export default function TransactionDetail() {
         <span>Interest Due</span>
         <span>₹{interestDue.toFixed(0)}</span>
       </div>
-      <div className="detail-row">
-        <span>Rate</span>
-        <span>
-          {transaction.rate}% {transaction.rateType}
-        </span>
-      </div>
+      {transaction.rate > 0 && (
+        <div className="detail-row">
+          <span>Rate</span>
+          <span>
+            {transaction.rate}% {transaction.rateType} (
+            {transaction.interestType === 'compound' ? 'Compound' : 'Simple'})
+          </span>
+        </div>
+      )}
       {transaction.note && (
         <div className="detail-row">
           <span>Note</span>
@@ -180,6 +198,14 @@ export default function TransactionDetail() {
           interestDue={interestDue}
           onClose={() => setDepositType(null)}
           onAdded={handleDepositAdded}
+        />
+      )}
+
+      {showEditModal && (
+        <EditTransactionModal
+          transaction={transaction}
+          onClose={() => setShowEditModal(false)}
+          onUpdated={handleTransactionUpdated}
         />
       )}
     </div>

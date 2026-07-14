@@ -956,3 +956,15 @@ img, svg {
   font-weight: 600;
   cursor: pointer;
 }
+/* ---------- Payment/edit info box (used in Deposit + Edit Transaction modals) ---------- */
+.payment-info-box {
+  background: #f5f7f6;
+  border-radius: 8px;
+  padding: 12px 14px;
+  margin-bottom: 14px;
+  font-size: 14px;
+  color: #333;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
