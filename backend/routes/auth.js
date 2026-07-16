@@ -11,13 +11,19 @@ function generateToken(userId) {
   });
 }
 
+// Normalizes a mobile number for comparison purposes only (strip spaces/dashes/+),
+// so "079-8621 5946" and "07986215946" are treated as the same number.
+function normalizeMobile(mobile) {
+  return (mobile || '').replace(/\D/g, '');
+}
+
 // @route  POST /api/auth/signup
 router.post('/signup', async (req, res) => {
   try {
-    const { name, email, password } = req.body;
+    const { name, email, mobile, password } = req.body;
 
-    if (!name || !email || !password) {
-      return res.status(400).json({ message: 'Name, email and password are required' });
+    if (!name || !email || !mobile || !password) {
+      return res.status(400).json({ message: 'Name, email, mobile and password are required' });
     }
     if (password.length < 6) {
       return res.status(400).json({ message: 'Password must be at least 6 characters' });
@@ -28,12 +34,17 @@ router.post('/signup', async (req, res) => {
       return res.status(409).json({ message: 'An account with this email already exists' });
     }
 
-    const user = await User.create({ name, email: email.toLowerCase().trim(), password });
+    const user = await User.create({
+      name: name.trim(),
+      email: email.toLowerCase().trim(),
+      mobile: mobile.trim(),
+      password
+    });
     const token = generateToken(user._id);
 
     res.status(201).json({
       token,
-      user: { id: user._id, name: user.name, email: user.email }
+      user: { id: user._id, name: user.name, email: user.email, mobile: user.mobile }
     });
   } catch (err) {
     console.error(err);
@@ -62,7 +73,7 @@ router.post('/signin', async (req, res) => {
     const token = generateToken(user._id);
     res.json({
       token,
-      user: { id: user._id, name: user.name, email: user.email }
+      user: { id: user._id, name: user.name, email: user.email, mobile: user.mobile }
     });
   } catch (err) {
     console.error(err);
@@ -79,6 +90,70 @@ router.get('/me', auth, async (req, res) => {
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// @route  POST /api/auth/verify-recovery
+// Step 1 of "Forgot Password": confirm name + email + mobile all match a single
+// existing account before letting the person move on to setting a new password.
+router.post('/verify-recovery', async (req, res) => {
+  try {
+    const { name, email, mobile } = req.body;
+    if (!name || !email || !mobile) {
+      return res.status(400).json({ message: 'Name, email and mobile are required' });
+    }
+
+    const user = await User.findOne({ email: email.toLowerCase().trim() });
+    if (!user) {
+      return res.status(404).json({ message: 'No account found with these details' });
+    }
+
+    const nameMatches = user.name.trim().toLowerCase() === name.trim().toLowerCase();
+    const mobileMatches = normalizeMobile(user.mobile) === normalizeMobile(mobile);
+
+    if (!nameMatches || !mobileMatches) {
+      return res.status(404).json({ message: 'No account found with these details' });
+    }
+
+    res.json({ verified: true });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Server error verifying account' });
+  }
+});
+
+// @route  POST /api/auth/reset-password
+// Step 2: re-checks the same name + email + mobile match (never trusts step 1
+// alone) and then sets the new password if everything still lines up.
+router.post('/reset-password', async (req, res) => {
+  try {
+    const { name, email, mobile, newPassword } = req.body;
+    if (!name || !email || !mobile || !newPassword) {
+      return res.status(400).json({ message: 'All fields are required' });
+    }
+    if (newPassword.length < 6) {
+      return res.status(400).json({ message: 'Password must be at least 6 characters' });
+    }
+
+    const user = await User.findOne({ email: email.toLowerCase().trim() });
+    if (!user) {
+      return res.status(404).json({ message: 'No account found with these details' });
+    }
+
+    const nameMatches = user.name.trim().toLowerCase() === name.trim().toLowerCase();
+    const mobileMatches = normalizeMobile(user.mobile) === normalizeMobile(mobile);
+
+    if (!nameMatches || !mobileMatches) {
+      return res.status(404).json({ message: 'No account found with these details' });
+    }
+
+    user.password = newPassword; // pre-save hook hashes this automatically
+    await user.save();
+
+    res.json({ message: 'Password updated successfully' });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Server error resetting password' });
   }
 });
 

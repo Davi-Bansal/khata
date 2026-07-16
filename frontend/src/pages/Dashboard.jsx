@@ -139,29 +139,41 @@ export default function Dashboard() {
           <div className="empty-state">No customers yet. Tap + to add one.</div>
         )}
         {!loading &&
-          filtered.map((c) => (
-            <div
-              key={c._id}
-              className="customer-row"
-              onClick={() => navigate(`/customer/${c._id}`)}
-            >
-              <div className="customer-avatar">{c.name.charAt(0).toUpperCase()}</div>
-              <div className="customer-info">
-                <div className="customer-name">{c.name}</div>
-                {c.email && <div className="customer-sub">{c.email}</div>}
-              </div>
-              <div className="customer-balance">
-                {c.balance >= 0 ? (
-                  <span className="amount-red">₹{Math.abs(c.balance).toFixed(0)}</span>
-                ) : (
-                  <span className="amount-green">₹{Math.abs(c.balance).toFixed(0)}</span>
-                )}
-                <div className="balance-label">
-                  {c.balance >= 0 ? 'You will get' : 'You will give'}
+          filtered.map((c) => {
+            // Net principal and net interest that make up the displayed balance,
+            // so we can show "₹5000 + ₹5 interest" instead of one combined number.
+            const netPrincipal = (c.gavePrincipal || 0) - (c.gotPrincipal || 0);
+            const netInterest = (c.gaveInterest || 0) - (c.gotInterest || 0);
+            const principalPart = Math.abs(netPrincipal);
+            const interestPart = Math.abs(netInterest);
+
+            return (
+              <div
+                key={c._id}
+                className="customer-row"
+                onClick={() => navigate(`/customer/${c._id}`)}
+              >
+                <div className="customer-avatar">{c.name.charAt(0).toUpperCase()}</div>
+                <div className="customer-info">
+                  <div className="customer-name">{c.name}</div>
+                  {c.email && <div className="customer-sub">{c.email}</div>}
+                </div>
+                <div className="customer-balance">
+                  {c.balance >= 0 ? (
+                    <span className="amount-red">₹{principalPart.toFixed(0)}</span>
+                  ) : (
+                    <span className="amount-green">₹{principalPart.toFixed(0)}</span>
+                  )}
+                  <div className="balance-label">
+                    {c.balance >= 0 ? 'You will get' : 'You will give'}
+                  </div>
+                  {interestPart > 0 && (
+                    <div className="interest-subline">+ ₹{interestPart.toFixed(0)} interest</div>
+                  )}
                 </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
       </div>
 
       <button className="fab" onClick={() => setShowAddModal(true)}>
