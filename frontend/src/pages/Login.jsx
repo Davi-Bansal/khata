@@ -45,6 +45,11 @@ export default function Login() {
             onChange={(e) => setPassword(e.target.value)}
             required
           />
+          <div style={{ textAlign: 'right', marginBottom: 12 }}>
+            <Link to="/forgot-password" style={{ fontSize: 14 }}>
+              Forgot password?
+            </Link>
+          </div>
           <button type="submit" className="btn-primary" disabled={loading}>
             {loading ? 'Signing in...' : 'Sign In'}
           </button>
