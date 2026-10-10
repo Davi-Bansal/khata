@@ -5,6 +5,7 @@ import { useAuth } from '../context/AuthContext';
 export default function Signup() {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
+  const [mobile, setMobile] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -16,7 +17,7 @@ export default function Signup() {
     setError('');
     setLoading(true);
     try {
-      await signup(name, email, password);
+      await signup(name, email, mobile, password);
       navigate('/');
     } catch (err) {
       setError(err.response?.data?.message || 'Something went wrong. Please try again.');
@@ -44,6 +45,13 @@ export default function Signup() {
             placeholder="Email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
+            required
+          />
+          <input
+            type="tel"
+            placeholder="Mobile Number"
+            value={mobile}
+            onChange={(e) => setMobile(e.target.value)}
             required
           />
           <input

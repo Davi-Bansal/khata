@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import api from '../api/axios';
 import AddTransactionModal from '../components/AddTransactionModal';
+import EditCustomerModal from '../components/EditCustomerModal';
 import { SHOP_NAME } from '../config';
 
 function formatDate(d) {
@@ -81,6 +82,7 @@ export default function CustomerDetail() {
   const [loading, setLoading] = useState(true);
   const [modalType, setModalType] = useState(null); // 'gave' | 'got' | null
   const [menuOpen, setMenuOpen] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
 
   const load = async () => {
     setLoading(true);
@@ -104,6 +106,11 @@ export default function CustomerDetail() {
   const handleAdded = () => {
     setModalType(null);
     load();
+  };
+
+  const handleCustomerUpdated = (updatedCustomer) => {
+    setShowEditModal(false);
+    setCustomer(updatedCustomer);
   };
 
   const handleDeleteCustomer = async () => {
@@ -154,6 +161,15 @@ export default function CustomerDetail() {
 
       {menuOpen && (
         <div className="dropdown-menu">
+          <div
+            className="dropdown-item"
+            onClick={() => {
+              setMenuOpen(false);
+              setShowEditModal(true);
+            }}
+          >
+            Edit Customer
+          </div>
           <div className="dropdown-item" onClick={handleDeleteCustomer}>
             Delete Customer
           </div>
@@ -163,7 +179,13 @@ export default function CustomerDetail() {
       <div className="summary-card">
         <div className="customer-detail-header">
           <div>{customer.name}</div>
-          {customer.mobile && <div className="customer-sub">{customer.mobile}</div>}
+          {customer.mobile ? (
+            <div className="customer-sub">{customer.mobile}</div>
+          ) : (
+            <div className="customer-sub-faded" onClick={() => setShowEditModal(true)}>
+              + Add mobile number
+            </div>
+          )}
           {customer.email && <div className="customer-sub">{customer.email}</div>}
         </div>
         <div className="summary-row" style={{ marginTop: 10 }}>
@@ -172,7 +194,8 @@ export default function CustomerDetail() {
             <div className="summary-label">You gave</div>
             {totals.gaveInterest > 0 && (
               <div className="interest-subline">
-                ₹{totals.gavePrincipal.toFixed(0)} + ₹{totals.gaveInterest.toFixed(0)} interest
+                <span className="principal-part">₹{totals.gavePrincipal.toFixed(0)}</span>
+                <span className="interest-part"> + ₹{totals.gaveInterest.toFixed(0)} interest</span>
               </div>
             )}
           </div>
@@ -182,7 +205,8 @@ export default function CustomerDetail() {
             <div className="summary-label">You got</div>
             {totals.gotInterest > 0 && (
               <div className="interest-subline">
-                ₹{totals.gotPrincipal.toFixed(0)} + ₹{totals.gotInterest.toFixed(0)} interest
+                <span className="principal-part">₹{totals.gotPrincipal.toFixed(0)}</span>
+                <span className="interest-part"> + ₹{totals.gotInterest.toFixed(0)} interest</span>
               </div>
             )}
           </div>
@@ -247,6 +271,14 @@ export default function CustomerDetail() {
           type={modalType}
           onClose={() => setModalType(null)}
           onAdded={handleAdded}
+        />
+      )}
+
+      {showEditModal && (
+        <EditCustomerModal
+          customer={customer}
+          onClose={() => setShowEditModal(false)}
+          onUpdated={handleCustomerUpdated}
         />
       )}
     </div>
