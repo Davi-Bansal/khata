@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import PasswordInput from '../components/PasswordInput';
 
 export default function Login() {
   const [email, setEmail] = useState('');
@@ -40,8 +41,7 @@ export default function Login() {
             onChange={(e) => setEmail(e.target.value)}
             required
           />
-          <input
-            type="password"
+          <PasswordInput
             name="password"
             autoComplete="current-password"
             placeholder="Password"
@@ -50,7 +50,15 @@ export default function Login() {
             required
           />
           <div style={{ textAlign: 'right', marginBottom: 12 }}>
-            <Link to="/forgot-password" style={{ fontSize: 14 }}>
+            <Link
+              to="/forgot-password"
+              style={{
+                color: '#00897b',
+                fontSize: 14,
+                fontWeight: 600,
+                textDecoration: 'none'
+              }}
+            >
               Forgot password?
             </Link>
           </div>

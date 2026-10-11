@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import api from '../api/axios';
+import PasswordInput from '../components/PasswordInput';
 
 export default function ResetPassword() {
   const { token } = useParams();
@@ -51,8 +52,9 @@ export default function ResetPassword() {
 
         {!success && (
           <form onSubmit={handleSubmit}>
-            <input
-              type="password"
+            <PasswordInput
+              name="newPassword"
+              autoComplete="new-password"
               placeholder="New Password (min 6 characters)"
               value={newPassword}
               onChange={(e) => setNewPassword(e.target.value)}
@@ -60,8 +62,9 @@ export default function ResetPassword() {
               required
               autoFocus
             />
-            <input
-              type="password"
+            <PasswordInput
+              name="confirmPassword"
+              autoComplete="new-password"
               placeholder="Confirm New Password"
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
