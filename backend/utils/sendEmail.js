@@ -58,6 +58,7 @@ async function sendWithGmail({ to, subject, text, html }) {
 }
 
 async function sendEmail(options) {
+  console.log('Email provider:', process.env.BREVO_API_KEY ? 'Brevo API' : 'Gmail SMTP (no BREVO_API_KEY found)');
   if (process.env.BREVO_API_KEY) {
     return sendWithBrevo(options);
   }
