@@ -33,6 +33,8 @@ export default function Login() {
         <form onSubmit={handleSubmit}>
           <input
             type="email"
+            name="email"
+            autoComplete="email"
             placeholder="Email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
@@ -40,6 +42,8 @@ export default function Login() {
           />
           <input
             type="password"
+            name="password"
+            autoComplete="current-password"
             placeholder="Password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
@@ -54,9 +58,6 @@ export default function Login() {
             {loading ? 'Signing in...' : 'Sign In'}
           </button>
         </form>
-        <p className="auth-switch">
-          <Link to="/forgot-password">Forgot password?</Link>
-        </p>
         <p className="auth-switch">
           Don't have an account? <Link to="/signup">Sign up</Link>
         </p>
